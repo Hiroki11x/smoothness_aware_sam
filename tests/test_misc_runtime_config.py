@@ -24,27 +24,11 @@ class TestMiscRuntimeConfig(unittest.TestCase):
                 "/tmp/shared-data",
             )
 
-    def test_update_dataroot_uses_imagenet_override_for_default_path(self):
-        with mock.patch.dict(os.environ, {"IMAGENET_DATA_ROOT": "/datasets/imagenet"}, clear=False):
-            self.assertEqual(
-                misc.update_dataroot("imagenet", "../data"),
-                "/datasets/imagenet",
-            )
-
-    def test_update_dataroot_keeps_explicit_existing_path(self):
+    def test_update_dataroot_keeps_explicit_path_without_override(self):
         with tempfile.TemporaryDirectory() as data_root:
-            with mock.patch.dict(os.environ, {"IMAGENET_DATA_ROOT": "/datasets/imagenet"}, clear=False):
-                self.assertEqual(
-                    misc.update_dataroot("imagenet", data_root),
-                    data_root,
-                )
-
-    def test_update_dataroot_keeps_explicit_nondefault_path(self):
-        custom_root = "/tmp/custom-imagenet-root"
-        with mock.patch.dict(os.environ, {"IMAGENET_DATA_ROOT": "/datasets/imagenet"}, clear=False):
             self.assertEqual(
-                misc.update_dataroot("imagenet", custom_root),
-                custom_root,
+                misc.update_dataroot("cifar10", data_root),
+                data_root,
             )
 
     def test_get_local_scratch_path_uses_first_available_env(self):

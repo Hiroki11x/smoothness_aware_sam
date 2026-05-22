@@ -1,28 +1,34 @@
-# SAM Calibration
+# Smoothness-Adaptive Sharpness-Aware Minimization
 
-Research code for calibration and out-of-distribution experiments with:
+Reproduction-focused code for the ICLR 2024 paper:
 
-- `SAM`
-- `SA-SGD`
-- `SA-SAM`
-- standard baselines such as `SGD`, `Momentum SGD`, `Adam`, and `AdamW`
+- `Smoothness-Adaptive Sharpness-Aware Minimization for Finding Flatter Minima`
 
-The main `src/` implementation has been cleaned up to match the paper version of SA-SAM more closely:
+The repository is intentionally narrowed to the paper's core image-classification setup:
 
-- `sasgd` is the canonical smoothness-adaptive SGD name
-- `sasam` is the canonical smoothness-adaptive SAM name
-- legacy aliases `adsgd` and `adsgd_sam` are still accepted for backward compatibility
-- SA-SAM uses the paper-style adaptive perturbation radius `rho_t = sqrt(eta_t)`
+- training dataset: `CIFAR-10`
+- OOD evaluation dataset: `CIFAR10-C`
+- models: `vgg19`, `vit_small`
+- optimizers: `momentum_sgd`, `adam`, `sam`, `sasgd`, `sasam`
+
+Legacy aliases are still accepted:
+
+- `adsgd` -> `sasgd`
+- `adsgd_sam` -> `sasam`
+
+`sasam` follows the paper-style adaptive perturbation radius:
+
+- `rho_t = sqrt(eta_t)`
 
 ## Repository Layout
 
-- `src/`: main training pipeline for calibration and OOD experiments
-- `tests/`: lightweight regression tests for optimizer behavior and runtime configuration
-- `exp/`: small generic utilities and notes; cluster-specific launchers were removed
+- `src/`: training, evaluation, optimizers, Hessian utilities, and models used in the paper
+- `tests/`: regression tests for SA-SAM behavior and runtime configuration
+- `exp/`: a minimal helper directory
 
 ## Installation
 
-Use a Python environment with PyTorch installed, then install the project dependencies:
+Use a Python environment with PyTorch installed, then install:
 
 ```sh
 pip install -r requirements.txt
@@ -30,40 +36,60 @@ pip install -r requirements.txt
 
 Notes:
 
-- `requirements.txt` includes the `ImageNetV2_pytorch` dependency used for ImageNet-V2 evaluation.
-- `numpy<2` is pinned in `requirements.txt` because the current PyTorch environment in this project is not yet compatible with NumPy 2 in all setups.
-- `backpack-for-pytorch` is optional. Some experimental code checks for it, but the main training path does not require it.
+- `numpy<2` is pinned because the current local PyTorch environment may be built against NumPy 1.x.
+- `pyhessian` is only needed when `--calc_hessian` is enabled.
 
-## Main Training Entry Point
+## Data Layout
 
-The primary entry point is:
+Default training data root is `../data`.
+
+Expected paths:
+
+- `../data/cifar-10-batches-py` or the directory structure created by `torchvision.datasets.CIFAR10`
+- `../data/CIFAR10_C/npy_files/*.npy` for CIFAR10-C
+
+You can also pass a separate OOD root:
+
+```sh
+--ood_data_root /path/to/CIFAR10_C/npy_files
+```
+
+or its parent:
+
+```sh
+--ood_data_root /path/to/data
+```
+
+## Main Entry Point
+
+The main entry point is:
 
 ```sh
 python src/main.py
 ```
 
-Example: CIFAR-10 with paper-style SA-SAM
+Example: paper-style SA-SAM on VGG-19
 
 ```sh
 python src/main.py \
+  --model vgg19 \
   --dataset cifar10 \
-  --ood_dataset cifar10_1 \
-  --model resnet18_1_cifar \
+  --ood_dataset cifar10_c \
   --opt sasam \
   --lr 0.05 \
   --batch_size 256 \
   --epochs_budget 200 \
-  --wandb_project_name sam-calibration \
+  --wandb_project_name smoothness-aware-sam \
   --wandb_offline
 ```
 
-Example: vanilla SAM baseline
+Example: vanilla SAM baseline on ViT-Small
 
 ```sh
 python src/main.py \
+  --model vit_small \
   --dataset cifar10 \
-  --ood_dataset cifar10_1 \
-  --model resnet18_1_cifar \
+  --ood_dataset cifar10_c \
   --opt sam \
   --rho 0.05 \
   --lr 0.05 \
@@ -72,54 +98,28 @@ python src/main.py \
   --wandb_offline
 ```
 
-Supported optimizer names in `src/main.py` include:
+## Hessian Metrics
 
-- `vanilla_sgd`
-- `momentum_sgd`
-- `nesterov_momentum_sgd`
-- `adam`
-- `adamw`
-- `sam`
-- `sasgd`
-- `sasam`
+To reproduce the flatness measurements from the paper, enable Hessian computation:
 
-## Runtime Configuration
+```sh
+python src/main.py \
+  --model vgg19 \
+  --opt sasam \
+  --calc_hessian \
+  --calc_hessian_interval 25
+```
 
-The code no longer depends on cluster-specific environment names such as Mila or Narval.
+This uses `pyhessian` to log:
 
-Optional environment variables:
-
-- `SAM_CALIBRATION_CUDA_VISIBLE_DEVICES`: explicitly sets `CUDA_VISIBLE_DEVICES`
-- `SAM_CALIBRATION_DATA_ROOT`: overrides the dataset root for all datasets
-- `IMAGENET_DATA_ROOT`: fallback root for ImageNet when `--data_root` is left at its default
-- `LOCAL_SCRATCH_DIR`, `SLURM_TMPDIR`, `TMPDIR`, `DATA_DIR_PATH`: optional scratch-directory hints for helper utilities
-
-W&B configuration is now generic:
-
-- `--wandb_entity` is optional
-- if omitted, runs are created without a hard-coded team or organization
+- trace of the Hessian
+- top eigenvalue of the Hessian
+- optional gradient norm if `--calc_gradnorm`
 
 ## Tests
 
-Run the lightweight regression tests with:
+Run:
 
 ```sh
 python -m unittest tests.test_sasam_paper_behavior tests.test_misc_runtime_config
 ```
-
-These tests currently cover:
-
-- canonical optimizer aliases
-- SA-SAM adaptive `rho` behavior
-- generic runtime environment and dataset-root resolution
-
-## Removed Cluster-Specific Assets
-
-Historical cluster launchers and environment setup files were removed from the working tree during cleanup because they contained:
-
-- hard-coded usernames
-- hard-coded absolute paths
-- site-specific scheduler assumptions
-- site-specific W&B defaults
-
-If you need batch-job launchers again, create new generic scripts on top of the documented CLI examples above instead of reintroducing cluster-specific paths into the repository.

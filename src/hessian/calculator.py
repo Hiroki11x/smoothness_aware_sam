@@ -2,7 +2,6 @@ import copy
 import numpy as np
 import torch
 from pyhessian import hessian
-from collections import OrderedDict
 
 class HessianCalculator:
     def __init__(self, model, exp_dict):
@@ -15,11 +14,12 @@ class HessianCalculator:
     # https://github.com/TrustAIoT/CR-SAM/blob/main/metrics/metrics.py
     # https://github.com/TrustAIoT/CR-SAM/blob/3d2d0ee2dd03e51bf02438bc8827a3de00de2ea5/utils/crsam.py#L78
     def grad_norm(self, model, dataloader, lp=2): 
-        criterion = torch.nn.CrossEntropyLoss().cuda()
+        device = next(model.parameters()).device
+        criterion = torch.nn.CrossEntropyLoss().to(device)
         self.model.eval()
         total_norm = []
         for i, (inputs, labels) in enumerate(dataloader):
-            inputs, labels = inputs.to('cuda'), labels.to('cuda')
+            inputs, labels = inputs.to(device), labels.to(device)
             labels = labels.long()  # ラベルをLong型に変換
             outputs = model(inputs)
             batch_loss = criterion(outputs, labels)
@@ -59,7 +59,7 @@ class HessianCalculator:
             print(f"[calc hessian for test datasets] {self.exp_dict['ood_dataset']} is not supported yet")
 
         else:
-            # OODデータセットの計算（例：imagenet_v2, cifar10_c）
+            # OOD datasets used in the reproduction code.
             if ood_dataloaders and kinds:
                 test_tr_h, test_eigen_h, test_gradnorm = 0, 0, 0
                 for ood_loader, kind in zip(ood_dataloaders, kinds):
@@ -106,14 +106,16 @@ class HessianCalculator:
     def calc_hessian_from_pyhessian(self, model, data_loader, batch_size, sample_size, top_n):
 
         model.zero_grad()
-        loss_fn = torch.nn.CrossEntropyLoss().cuda()
+        device = next(model.parameters()).device
+        use_cuda = device.type == "cuda"
+        loss_fn = torch.nn.CrossEntropyLoss().to(device)
         hessian_dataloader = self.build_hessian_dataloader(data_loader,
                                                     sample_size,
                                                     batch_size)
         hessian_comp = hessian(model,
                             loss_fn,
                             dataloader=hessian_dataloader,
-                            cuda=True)
+                            cuda=use_cuda)
 
         traces = hessian_comp.trace()
         trace_h = np.mean(traces)

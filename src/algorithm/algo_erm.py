@@ -1,24 +1,7 @@
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.autograd as autograd
-
-import copy
 import numpy as np
-from collections import OrderedDict
-try:
-    from backpack import backpack, extend
-    from backpack.extensions import BatchGrad
-except:
-    backpack = None
+import torch
 
-from . import networks
-from .misc import (
-    random_pairs_of_minibatches, split_meta_train_test, ParamDict,
-    MovingAverage, l2_between_dicts, proj, Nonparametric
-)
-
-from calibration.ece import calc_ece, init_config
+from calibration.ece import calc_ece
 from calibration.utils import get_maxprob_and_onehot
 from opt import canonical_optimizer_name, requires_previous_model
 

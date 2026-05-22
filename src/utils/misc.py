@@ -54,14 +54,10 @@ def define_gpus(dataset_name):
         os.environ["CUDA_VISIBLE_DEVICES"] = visible_devices
         
 def update_dataroot(dataset_name, data_root):
+    del dataset_name
     override_root = os.environ.get("SAM_CALIBRATION_DATA_ROOT")
     if override_root:
         return override_root
-
-    if dataset_name == 'imagenet':
-        imagenet_root = os.environ.get("IMAGENET_DATA_ROOT")
-        if imagenet_root and _should_replace_data_root(data_root):
-            return imagenet_root
     return data_root
 
 def get_local_scratch_path_train():
@@ -115,11 +111,7 @@ def print_model_summary(model, dataset):
     if summary is None:
         raise ImportError("torchsummary is required to print the model summary.")
     print("\nModel Arch Summary:")
-    if dataset == 'cifar10' or dataset == 'cifar100':
+    if dataset == 'cifar10':
         summary(model, (3, 32, 32))
-    elif dataset == 'imagenet':
-        summary(model, (3, 224, 224))
-    elif dataset == 'mnist':
-        summary(model, (1, 28, 28))
     else:
-        raise NotImplementedError
+        raise ValueError("Only 'cifar10' is supported in the paper reproduction code.")

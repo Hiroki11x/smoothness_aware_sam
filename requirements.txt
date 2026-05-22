@@ -1,8 +1,5 @@
 attrs
 einops
-git+https://github.com/modestyachts/ImageNetV2_pytorch
-matplotlib
-ml-collections
 numpy<2
 Pillow
 pyhessian
