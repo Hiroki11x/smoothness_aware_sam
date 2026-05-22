@@ -17,7 +17,6 @@ The main `src/` implementation has been cleaned up to match the paper version of
 ## Repository Layout
 
 - `src/`: main training pipeline for calibration and OOD experiments
-- `wasam/`: standalone example code for SWA/SAM-style experiments
 - `tests/`: lightweight regression tests for optimizer behavior and runtime configuration
 - `exp/`: small generic utilities and notes; cluster-specific launchers were removed
 
@@ -99,16 +98,6 @@ W&B configuration is now generic:
 
 - `--wandb_entity` is optional
 - if omitted, runs are created without a hard-coded team or organization
-
-## WASAM Example
-
-The standalone example pipeline lives in:
-
-```sh
-python wasam/example/main.py
-```
-
-Its argument parser is defined in `wasam/example/config.py`, and it also accepts an optional `--wandb_entity`.
 
 ## Tests
 

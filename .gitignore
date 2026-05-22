@@ -352,7 +352,5 @@ buck-out/
 third_party/ruy/
 third_party/glog/
 
-
-wasam/example/saved_models/
 */saved_models/
 */**/saved_models/
